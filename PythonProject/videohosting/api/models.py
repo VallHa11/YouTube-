@@ -58,3 +58,14 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.subscriber.username} → {self.subscribed_to.username}"
+
+from django.db import models
+
+class VideoUpload(models.Model):
+    upload_id = models.CharField(max_length=100, unique=True)
+    file_name = models.CharField(max_length=255)
+    total_chunks = models.IntegerField()
+    uploaded_chunks = models.IntegerField(default=0)
+    is_complete = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+

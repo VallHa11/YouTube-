@@ -8,7 +8,7 @@ class VideoOut(Schema):
     id: int
     title: str
     description: Optional[str]
-    video_file: str
+    hls_url: Optional[str]
     thumbnail: Optional[str]
     author_id: int
     uploaded_at: datetime
@@ -47,7 +47,6 @@ class UserProfileOut(Schema):
     avatar: Optional[str] = None
     subscribers_count: int
     subscriptions_count: int
-    videos: List[SimpleVideo]
 
 class ProfileUpdateIn(Schema):
     email: Optional[str]

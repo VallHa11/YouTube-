@@ -10,12 +10,11 @@ from .auth import JWTAuth
 from typing import List
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-
-
-
+from .upload_router import router as upload_router
+from .utils import convert_to_hls
 
 api = NinjaAPI(auth=JWTAuth())
-
+api.add_router("/video/", upload_router)
 User = get_user_model()
 
 @api.post("/auth/register", auth=None)
@@ -44,7 +43,6 @@ def login(request, data: LoginSchema):
     }
 
 @api.post("/upload", response=VideoOut)
-@api.post("/upload", response=VideoOut)
 def upload_video(
     request,
     title: str = Form(...),
@@ -64,11 +62,18 @@ def upload_video(
         author=user
     )
 
+    # После загрузки — запускаем HLS конвертацию
+    convert_to_hls(video.video_file.path)
+
+    # Генерируем hls_url
+    import os
+    hls_path = f"/media/videos/{os.path.splitext(os.path.basename(video.video_file.name))[0]}/index.m3u8"
+
     return VideoOut(
         id=video.id,
         title=video.title,
         description=video.description,
-        video_file=video.video_file.url,
+        hls_url=hls_path,
         thumbnail=video.thumbnail.url if video.thumbnail else None,
         author_id=video.author.id,
         uploaded_at=video.uploaded_at,
@@ -172,11 +177,28 @@ def search_videos(request, q: str):
 @api.get("/videos/{video_id}", response=VideoOut)
 def get_video(request, video_id: int):
     video = get_object_or_404(Video, id=video_id)
+
     video.likes = video.reactions.filter(type="like").count()
     video.dislikes = video.reactions.filter(type="dislike").count()
     video.views += 1
     video.save()
-    return video
+
+    import os
+    hls_path = f"/media/videos/{os.path.splitext(os.path.basename(video.video_file.name))[0]}/index.m3u8"
+
+    return VideoOut(
+        id=video.id,
+        title=video.title,
+        description=video.description,
+        hls_url=hls_path,
+        thumbnail=video.thumbnail.url if video.thumbnail else None,
+        author_id=video.author.id,
+        uploaded_at=video.uploaded_at,
+        views=video.views,
+        likes=video.likes,
+        dislikes=video.dislikes
+    )
+
 
 @api.get("/videos/{video_id}/comments/", response=List[CommentOut])
 def list_comments(request, video_id: int):
@@ -261,14 +283,6 @@ def user_profile(request):
         email=user.email,
         subscribers_count=user.subscribers.count(),
         subscriptions_count=user.subscriptions.count(),
-        videos=[
-            SimpleVideo(
-                id=v.id,
-                title=v.title,
-                uploaded_at=v.uploaded_at
-            )
-            for v in user.videos.all().order_by("-uploaded_at")
-        ]
     )
 
 @api.get("/users/{user_id}/", response=UserProfileOut)
@@ -324,4 +338,3 @@ def search_users(request, q: str):
         )
         for u in users
     ]
-

@@ -133,3 +133,5 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
+CHUNK_UPLOAD_DIR = os.path.join(BASE_DIR, 'media', 'temp_chunks')
+VIDEO_STORAGE_DIR = os.path.join(BASE_DIR, 'media', 'videos')

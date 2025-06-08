@@ -47,7 +47,6 @@ class UserProfileOut(Schema):
     avatar: Optional[str] = None
     subscribers_count: int
     subscriptions_count: int
-    subscriptions_count: int
 
 class ProfileUpdateIn(Schema):
     email: Optional[str]
